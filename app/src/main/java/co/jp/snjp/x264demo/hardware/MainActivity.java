@@ -198,7 +198,7 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
         });
 
         tmcdec = new TMCH264Dec(this);
-        tmcdec.Init("hq1a00t1");
+//        tmcdec.Init("hq1a00t1");
     }
 
     private void writeBmp() {
@@ -218,115 +218,6 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
             }
         }.start();
 
-    }
-
-    private void initHyway2TmcDecoder() throws IOException {
-
-        String[] listFiles = getAssets().list("hyway_h264");
-
-        for (int i = 0; i < listFiles.length; i++) {
-            String fileName = listFiles[i];
-            InputStream inputStream = getAssets().open("hyway_h264/" + fileName);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-            byte[] b = new byte[1024];
-            int len = 0;
-            while ((len = inputStream.read(b)) != -1) {
-                outputStream.write(b, 0, len);
-            }
-            byte[] h264_data = outputStream.toByteArray();
-
-            long beforeTime = System.currentTimeMillis();
-            int retcode = tmcdec.SetStream(h264_data, 0, h264_data.length);
-            if (retcode == TMCH264Dec.TMCH264DEC_STATUS_OUT_IMAGE) {
-//                    outWidth = tmcdec.GetWidth();
-//                    outHeight = tmcdec.GetHeight();
-                byte[] yuv_data = tmcdec.GetImage();
-
-                File file = new File(HYWAY_TMC_YUV_PATH + "/hyway_tmc" + i + ".yuv");
-                FileUtils.writeFile(file, yuv_data, false);
-            }
-            Log.i("TMC_DECODER_TIME", (System.currentTimeMillis() - beforeTime) + "");
-
-            outputStream.close();
-            inputStream.close();
-        }
-    }
-
-    private void initTmc2TmcDecoder() throws IOException {
-
-
-        String[] listFiles = getAssets().list("tmc_h264");
-
-        for (int i = 0; i < listFiles.length; i++) {
-            String fileName = listFiles[i];
-            InputStream inputStream = getAssets().open("tmc_h264/" + fileName);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-            byte[] b = new byte[1024];
-            int len = 0;
-            while ((len = inputStream.read(b)) != -1) {
-                outputStream.write(b, 0, len);
-            }
-            byte[] h264_data = outputStream.toByteArray();
-
-            long beforeTime = System.currentTimeMillis();
-            int retcode = tmcdec.SetStream(h264_data, 0, h264_data.length);
-            if (retcode == TMCH264Dec.TMCH264DEC_STATUS_OUT_IMAGE) {
-//                    outWidth = tmcdec.GetWidth();
-//                    outHeight = tmcdec.GetHeight();
-                byte[] yuv_data = tmcdec.GetImage();
-
-                File file = new File(TMC_TMC_YUV_PATH + "/tmc_tmc" + i + ".yuv");
-                FileUtils.writeFile(file, yuv_data, false);
-            }
-            Log.i("TMC_DECODER_TIME", (System.currentTimeMillis() - beforeTime) + "");
-
-            outputStream.close();
-            inputStream.close();
-        }
-
-    }
-
-    private void initTmc2HywayDecoder() throws IOException {
-        String api_select = api_spinner.getSelectedItem().toString();
-        boolean isNew = false;
-        if (api_select.contains("new")) {
-            isNew = true;
-        } else {
-            isNew = false;
-        }
-        decoder = new H264Decoder(MIME_FORMAT, 1280, 720, isNew, new H264Decoder.IResponse() {
-            @Override
-            public void onResponse(int code, byte[] yuvData) {
-                File file = new File(TMC_HYWAY_YUV_PATH + "/tmc_hyway" + tmc2hywayDecIndex + ".yuv");
-                FileUtils.writeFile(file, yuvData, false);
-                tmc2hywayDecIndex++;
-                Log.i("HYWAY_DECODER_TIME", (System.currentTimeMillis() - tmc2hywayBeforeTime) + "");
-                tmc2hywayBeforeTime = System.currentTimeMillis();
-            }
-        });
-
-        String[] listFiles = getAssets().list("tmc_h264");
-        for (int i = 0; i < listFiles.length; i++) {
-            String fileName = listFiles[i];
-            InputStream inputStream = getAssets().open("tmc_h264/" + fileName);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-            byte[] b = new byte[1024];
-            int len = 0;
-            while ((len = inputStream.read(b)) != -1) {
-                outputStream.write(b, 0, len);
-            }
-            byte[] h264_data = outputStream.toByteArray();
-            decoder.addDataSource(h264_data);
-
-            outputStream.close();
-            inputStream.close();
-        }
-
-        decoder.startDecoderFromAsync();
-        tmc2hywayBeforeTime = System.currentTimeMillis();
     }
 
     private void initHyway2HywayDecoder() throws IOException {
