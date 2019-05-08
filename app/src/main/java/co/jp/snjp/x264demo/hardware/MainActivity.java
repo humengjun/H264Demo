@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                 if (imageEncoder != null)
                     imageEncoder.release();
                 int compressRatio = Integer.parseInt(spinner.getSelectedItem().toString().replace("%", ""));//压缩百分比
-                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 1280, 720, isNew);
+                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 640, 360, isNew);
             }
 
             @Override
@@ -187,8 +187,8 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                     imageDecoder.release();
                 if (imageEncoder != null)
                     imageEncoder.release();
-                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 1280, 720, isNew);
-                imageDecoder = new ImageDecoder(MIME_FORMAT, 1280, 720, isNew);
+                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 640, 360, isNew);
+                imageDecoder = new ImageDecoder(MIME_FORMAT, 640, 360, isNew);
             }
 
             @Override
@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
             }
         });
 
-        tmcdec = new TMCH264Dec(this);
+//        tmcdec = new TMCH264Dec(this);
 //        tmcdec.Init("hq1a00t1");
     }
 
@@ -516,33 +516,11 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
 
     private void startHywayDecoder(final File file) {
         startTime = System.currentTimeMillis();
-//        decoder = new H264Decoder(MIME_FORMAT, 1280, 720, new H264Decoder.IResponse() {
-//            @Override
-//            public void onResponse(int code, byte[] yuvData) {
-//                File outFile = new File(HYWAY_HYWAY_YUV_PATH + file.getName().replace(".264", "") + ".yuv");
-//                FileUtils.writeFile(outFile, yuvData, false);
-//                decoder.release();
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        state.setText("OK:" + (System.currentTimeMillis() - startTime));
-//                    }
-//                });
-//            }
-//        });
-//        try {
-//            InputStream inputStream = new FileInputStream(file);
-//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            byte[] b = new byte[1024];
-//            int len = 0;
-//            while ((len = inputStream.read(b)) != -1) {
-//                outputStream.write(b, 0, len);
-//            }
-//            byte[] h264Data = outputStream.toByteArray();
-//            decoder.addDataSource(h264Data);
+
         byte[] yuvData = imageDecoder.decoderFile(file);
         if (yuvData == null)
             return;
+
         File outFile = new File(HYWAY_HYWAY_YUV_PATH + file.getName().replace(".264", "") + ".yuv");
         FileUtils.writeFile(outFile, yuvData, false);
         runOnUiThread(new Runnable() {
@@ -552,45 +530,10 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
             }
         });
 
-//            inputStream.close();
-//            outputStream.close();
-//
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        decoder.startDecoderFromAsync();
     }
 
     private void startHywayEncoder(final File file) {
         startTime = System.currentTimeMillis();
-//        int compressRatio = Integer.parseInt(spinner.getSelectedItem().toString().replace("%", ""));//压缩百分比
-//        encoder = new H264Encoder(MIME_FORMAT, compressRatio, 1280, 720, new H264Encoder.IResponse() {
-//            @Override
-//            public void onResponse(int code, byte[] h264Data) {
-//                File outFile = new File(HYWAY_H264_PATH + file.getName().replace(".bmp", "") + ".264");
-//                FileUtils.writeFile(outFile, h264Data, false);
-//                encoder.release();
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        state.setText("OK:" + (System.currentTimeMillis() - startTime));
-//                    }
-//                });
-//            }
-//        });
-
-//        try {
-//            InputStream inputStream = new FileInputStream(file);
-//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            byte[] b = new byte[1024];
-//            int len = 0;
-//            while ((len = inputStream.read(b)) != -1) {
-//                outputStream.write(b, 0, len);
-//            }
-//            byte[] bmpData = outputStream.toByteArray();
-//            encoder.addDataSource(bmpData);
 
         byte[] h264Data = imageEncoder.encoderFile(file);
         if (h264Data == null)
@@ -605,16 +548,5 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                 state.setText("OK:" + (System.currentTimeMillis() - startTime));
             }
         });
-
-//            inputStream.close();
-//            outputStream.close();
-//
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        encoder.startEncoderFromAsync();
-
     }
 }

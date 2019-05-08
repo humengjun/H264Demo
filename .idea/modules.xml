@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/X264Demo.iml" filepath="$PROJECT_DIR$/X264Demo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/H264Demo.iml" filepath="$PROJECT_DIR$/H264Demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tmch264dec-1.0.0/tmch264dec-1.0.0.iml" filepath="$PROJECT_DIR$/tmch264dec-1.0.0/tmch264dec-1.0.0.iml" />
       <module fileurl="file://$PROJECT_DIR$/x264encoder/x264encoder.iml" filepath="$PROJECT_DIR$/x264encoder/x264encoder.iml" />
     </modules>
   </component>

@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.File;
@@ -31,6 +32,8 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 
     long startTime;
 
+    EditText edit_width, edit_height;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +59,9 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 
         textView = findViewById(R.id.time);
 
+        edit_width = findViewById(R.id.width);
+        edit_height = findViewById(R.id.height);
+
         findViewById(R.id.showYuv).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -67,7 +73,7 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 
     @Override
     public void onFileSelect(final File file) {
-        if (file.getName().lastIndexOf(".yuv") != 0) {
+        if (file.getName().endsWith(".yuv")) {
 //            new Thread() {
 //                @Override
 //                public void run() {
@@ -76,11 +82,19 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 //            }.start();
             startTime = System.currentTimeMillis();
 
-            renderer.update(1280, 720);
+            int height = 720;
+            int width = 1280;
+            try {
+                height = Integer.parseInt(edit_height.getText().toString());
+                width = Integer.parseInt(edit_width.getText().toString());
+            } catch (Exception ignored) {
+            }
+
+            renderer.update(width, height);
 
             byte[] yuv = FileUtils.readFile4Bytes(file);
 
-            copyFrom(yuv, 1280, 720);
+            copyFrom(yuv, width, height);
 
             byte[] y = new byte[yuvPlanes[0].remaining()];
             yuvPlanes[0].get(y, 0, y.length);

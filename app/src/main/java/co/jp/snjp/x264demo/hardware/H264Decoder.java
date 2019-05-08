@@ -23,7 +23,7 @@ public class H264Decoder {
 
     private final static String TAG = "H264Decoder";
 
-    private final int SDK_VERSION_CODES = 19;
+    private final int SDK_VERSION_CODES = Build.VERSION_CODES.M;
 
     private byte[] dataSources;
 
@@ -88,6 +88,8 @@ public class H264Decoder {
         } else {
             singleService = Executors.newSingleThreadExecutor();
             initRunnable();
+            mMediaCodec.configure(mMediaFormat, null, null, 0);
+            mMediaCodec.start();
         }
     }
 
@@ -101,8 +103,6 @@ public class H264Decoder {
                 mMediaCodec.configure(mMediaFormat, null, null, 0);
                 mMediaCodec.start();
             } else {
-                mMediaCodec.configure(mMediaFormat, null, null, 0);
-                mMediaCodec.start();
                 singleService.execute(decoderRunnable);
             }
         } else {
@@ -275,6 +275,9 @@ public class H264Decoder {
     class DecoderRunnable implements Runnable {
         @Override
         public void run() {
+            int yuvSize = width * height * 3 / 2;
+            byte[] yuvData = null;
+            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             while (true) {
                 dataSources = mInputDataList.poll();
                 if (dataSources == null)
@@ -284,24 +287,28 @@ public class H264Decoder {
                     ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
                     ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
                     int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
+                    int flag = MediaCodec.BUFFER_FLAG_KEY_FRAME;
+                    if (mInputDataList.size() == 0)
+                        flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
                     if (inputBufferIndex >= 0) {
                         ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                         inputBuffer.clear();
                         inputBuffer.put(dataSources);
-                        mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), 0);
+                        mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), flag);
                         generateIndex++;
                     }
 
-                    MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     while (outputBufferIndex >= 0) {
 
                         ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
-                        byte[] buffer = new byte[bufferInfo.size];
-                        outputBuffer.get(buffer, 0, buffer.length);
 
-                        if (iResponse != null)
-                            iResponse.onResponse(1, buffer);
+                        if (outputBuffer != null && bufferInfo.size >= yuvSize) {
+                            yuvData = new byte[yuvSize];
+                            outputBuffer.get(yuvData, 0, yuvData.length);
+                            if (iResponse != null)
+                                iResponse.onResponse(1, yuvData);
+                        }
 
                         mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                         outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);

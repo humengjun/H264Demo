@@ -1,5 +1,6 @@
 package co.jp.snjp.x264demo.hardware;
 
+import android.graphics.BitmapFactory;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -42,10 +43,16 @@ public class ImageEncoder {
 
     private boolean isNew;
 
+    private String mimeType;
+
+    private int compressRatio;
+
     public ImageEncoder(String mimeType, int compressRatio, int width, int height, boolean isNew) {
+        this.mimeType = mimeType;
         this.isNew = isNew;
         this.width = width;
         this.height = height;
+        this.compressRatio = compressRatio;
 
         try {
             mMediaCodec = MediaCodec.createEncoderByType(mimeType);
@@ -66,8 +73,15 @@ public class ImageEncoder {
         mMediaCodec.configure(mMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         mMediaCodec.start();
         isFirstFrame = true;
+        cacheFrameCount = 0;
+        generateIndex = 0;
     }
 
+    /**
+     * 获取支持的颜色格式
+     *
+     * @return
+     */
     private int getSupportColorFormat() {
         int numCodecs = MediaCodecList.getCodecCount();
         MediaCodecInfo codecInfo = null;
@@ -132,11 +146,28 @@ public class ImageEncoder {
         return 0;
     }
 
+    /**
+     * 编码一张图片
+     *
+     * @param file
+     * @return
+     */
     public byte[] encoderFile(File file) {
         byte[] yuvData;
         byte[] fileData = FileUtils.readFile4Bytes(file);
         if (fileData == null)
             return null;
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;//这个参数设置为true才有效，
+        BitmapFactory.decodeByteArray(fileData, 0, fileData.length, options);
+        //获取图片的宽高
+        int height = options.outHeight;
+        int width = options.outWidth;
+        if (this.width != width || this.height != height) {
+            resetEncoder(width, height);
+        }
+
         if (file.getName().endsWith(".bmp")) {
             if (isI420)
                 yuvData = Bmp2YuvTools.convertI420(fileData, width, height);
@@ -250,7 +281,7 @@ public class ImageEncoder {
                                 System.arraycopy(buffer, 0, h264Data, configByte.length, buffer.length);
                                 cacheFrameCount--;
                             } else {
-                                h264Data = buffer;
+//                                h264Data = buffer;
                                 cacheFrameCount--;
                             }
                         }
@@ -263,6 +294,50 @@ public class ImageEncoder {
         }
         isFirstFrame = false;
         return h264Data;
+    }
+
+    /**
+     * 图像宽高变化，需要重新设置编码器
+     *
+     * @param width
+     * @param height
+     */
+    private void resetEncoder(int width, int height) {
+        release();
+        this.width = width;
+        this.height = height;
+        try {
+            mMediaCodec = MediaCodec.createEncoderByType(mimeType);
+        } catch (IOException e) {
+            mMediaCodec = null;
+            return;
+        }
+        if (mMediaFormat != null) {
+            mMediaFormat.setInteger(MediaFormat.KEY_WIDTH, width);
+            mMediaFormat.setInteger(MediaFormat.KEY_HEIGHT, height);
+            mMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, width * height * 3 / 2 * compressRatio / 100);
+
+            mMediaCodec.configure(mMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mMediaCodec.start();
+            isFirstFrame = true;
+            cacheFrameCount = 0;
+            generateIndex = 0;
+        } else {
+            mMediaFormat = MediaFormat.createVideoFormat(mimeType, width, height);
+            //码率越低，图片越模糊
+            //2.56x10
+            mMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, width * height * 3 / 2 * compressRatio / 100);
+            mMediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, DEFAULT_FRAMERATE);
+            mMediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, DEFAULT_I_FRAME_INTERVAL);
+            int color_format = getSupportColorFormat();
+            mMediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, color_format);
+
+            mMediaCodec.configure(mMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mMediaCodec.start();
+            isFirstFrame = true;
+            cacheFrameCount = 0;
+            generateIndex = 0;
+        }
     }
 
     /**
