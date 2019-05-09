@@ -158,17 +158,16 @@ public class ImageEncoder {
         if (fileData == null)
             return null;
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;//这个参数设置为true才有效，
-        BitmapFactory.decodeByteArray(fileData, 0, fileData.length, options);
-        //获取图片的宽高
-        int height = options.outHeight;
-        int width = options.outWidth;
-        if (this.width != width || this.height != height) {
-            resetEncoder(width, height);
-        }
-
         if (file.getName().endsWith(".bmp")) {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;//这个参数设置为true才有效，
+            BitmapFactory.decodeByteArray(fileData, 0, fileData.length, options);
+            //获取图片的宽高
+            int height = options.outHeight;
+            int width = options.outWidth;
+            if (this.width != width || this.height != height) {
+                resetEncoder(width, height);
+            }
             if (isI420)
                 yuvData = Bmp2YuvTools.convertI420(fileData, width, height);
             else
@@ -208,7 +207,6 @@ public class ImageEncoder {
                     }
 
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
-//                    mMediaCodec.getOutputImage(outputBufferIndex);
                     while (outputBufferIndex >= 0) {
                         ByteBuffer outputBuffer = null;
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -240,6 +238,7 @@ public class ImageEncoder {
                 }
             }
         } else {
+            //根据缓存的帧数决定编码几帧，取最后一帧
             for (int i = 0; i < cacheFrameCount + 1; i++) {
                 if (mMediaCodec != null) {
                     int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
@@ -275,13 +274,10 @@ public class ImageEncoder {
                             if (bufferInfo.flags == 2) {
                                 configByte = new byte[bufferInfo.size];
                                 configByte = buffer;
-                            } else if (bufferInfo.flags == 1) {
+                            }  else {// if (bufferInfo.flags == 1)
                                 h264Data = new byte[buffer.length + configByte.length];
                                 System.arraycopy(configByte, 0, h264Data, 0, configByte.length);
                                 System.arraycopy(buffer, 0, h264Data, configByte.length, buffer.length);
-                                cacheFrameCount--;
-                            } else {
-//                                h264Data = buffer;
                                 cacheFrameCount--;
                             }
                         }

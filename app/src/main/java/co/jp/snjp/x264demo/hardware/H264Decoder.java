@@ -1,5 +1,6 @@
 package co.jp.snjp.x264demo.hardware;
 
+import android.media.Image;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -55,6 +56,8 @@ public class H264Decoder {
 
     private int height;
 
+    private int color_format;
+
     public void addDataSource(byte[] dataSource) {
         mInputDataList.add(dataSource);
     }
@@ -72,7 +75,7 @@ public class H264Decoder {
             return;
         }
 
-        int color_format = getSupportColorFormat();
+        color_format = getSupportColorFormat();
 
         mMediaFormat = MediaFormat.createVideoFormat(mimeType, width, height);
 //        mMediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, width * height * 3);
@@ -225,17 +228,30 @@ public class H264Decoder {
             @Override
             public void onOutputBufferAvailable(@NonNull MediaCodec mediaCodec, int id, @NonNull MediaCodec.BufferInfo bufferInfo) {
                 try {
-                    ByteBuffer outputBuffer = mediaCodec.getOutputBuffer(id);
-                    int yuvSize = width * height * 3 / 2;
-                    if (outputBuffer != null && bufferInfo.size >= yuvSize) {
-                        byte[] buffer = new byte[yuvSize];
-                        outputBuffer.get(buffer);
-                        mediaCodec.releaseOutputBuffer(id, false);
-                        if (iResponse != null) {
-                            if (!isI420) {
-                                buffer = YuvConvertTools.NV12toI420(buffer);
+
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP &&
+                            color_format != MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible) {
+                        //COLOR_FormatYUV420Flexible颜色格式不支持此方法解码
+                        Image image = mMediaCodec.getOutputImage(id);
+                        if (image != null) {
+                            byte[] yuvData = ImageHelper.getDataFromImage(image, ImageHelper.COLOR_FormatI420);
+                            if (iResponse != null) {
+                                iResponse.onResponse(1, yuvData);
                             }
-                            iResponse.onResponse(1, buffer);
+                        }
+                    } else {
+                        ByteBuffer outputBuffer = mediaCodec.getOutputBuffer(id);
+                        int yuvSize = width * height * 3 / 2;
+                        if (outputBuffer != null && bufferInfo.size >= yuvSize) {
+                            byte[] buffer = new byte[yuvSize];
+                            outputBuffer.get(buffer);
+                            mediaCodec.releaseOutputBuffer(id, false);
+                            if (iResponse != null) {
+                                if (!isI420) {
+                                    buffer = YuvConvertTools.NV12toI420(buffer);
+                                }
+                                iResponse.onResponse(1, buffer);
+                            }
                         }
                     }
                 } catch (IllegalStateException ignored) {
@@ -300,18 +316,31 @@ public class H264Decoder {
 
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     while (outputBufferIndex >= 0) {
-
-                        ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
-
-                        if (outputBuffer != null && bufferInfo.size >= yuvSize) {
-                            yuvData = new byte[yuvSize];
-                            outputBuffer.get(yuvData, 0, yuvData.length);
-                            if (iResponse != null)
-                                iResponse.onResponse(1, yuvData);
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP &&
+                                color_format != MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible) {
+                            //COLOR_FormatYUV420Flexible颜色格式不支持此方法解码
+                            Image image = mMediaCodec.getOutputImage(outputBufferIndex);
+                            if (image != null) {
+                                yuvData = ImageHelper.getDataFromImage(image, ImageHelper.COLOR_FormatI420);
+                                if (iResponse != null) {
+                                    iResponse.onResponse(1, yuvData);
+                                }
+                            }
+                        } else {
+                            ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
+                            if (outputBuffer != null && bufferInfo.size >= yuvSize) {
+                                yuvData = new byte[yuvSize];
+                                outputBuffer.get(yuvData, 0, yuvData.length);
+                                if (iResponse != null) {
+                                    if (!isI420) {
+                                        yuvData = YuvConvertTools.NV12toI420(yuvData);
+                                    }
+                                    iResponse.onResponse(1, yuvData);
+                                }
+                            }
+                            mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
+                            outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                         }
-
-                        mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-                        outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     }
 
                 } catch (Throwable t) {

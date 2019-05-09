@@ -76,6 +76,12 @@ public class H264SPSParser {
         return ret;
     }
 
+    /**
+     * 从SPS中提取图像的分辨率
+     *
+     * @param h264Data
+     * @param w_h_data
+     */
     public static void obtainH264ImageSize(byte[] h264Data, int[] w_h_data) {
         if (w_h_data.length < 2)
             return;
@@ -152,6 +158,12 @@ public class H264SPSParser {
         w_h_data[1] = (pic_height_in_map_units_minus1 + 1) * 16;
     }
 
+    /**
+     * 从H264文件中提取sps数据
+     *
+     * @param h264Data
+     * @return
+     */
     private static byte[] getSPS(byte[] h264Data) {
         byte[] startPos1 = new byte[]{0x00, 0x00, 0x00, 0x01};
         byte[] startPos2 = new byte[]{0x00, 0x00, 0x01};

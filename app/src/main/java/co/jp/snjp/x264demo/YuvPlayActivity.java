@@ -3,6 +3,7 @@ package co.jp.snjp.x264demo;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -90,6 +91,19 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
             } catch (Exception ignored) {
             }
 
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            int screenWidth = dm.widthPixels;
+            int screenHeight = dm.heightPixels;
+
+            if (screenWidth > width) {
+                surface.getLayoutParams().height = height;
+                surface.getLayoutParams().width = width;
+            } else {
+                surface.getLayoutParams().height = height * screenWidth / width;
+                surface.getLayoutParams().width = screenWidth;
+            }
+
+
             renderer.update(width, height);
 
             byte[] yuv = FileUtils.readFile4Bytes(file);
@@ -119,12 +133,10 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 
         int[] yuvStrides = {width, width / 2, width / 2};
 
-        if (yuvPlanes == null) {
-            yuvPlanes = new ByteBuffer[3];
-            yuvPlanes[0] = ByteBuffer.allocateDirect(yuvStrides[0] * height);
-            yuvPlanes[1] = ByteBuffer.allocateDirect(yuvStrides[1] * height / 2);
-            yuvPlanes[2] = ByteBuffer.allocateDirect(yuvStrides[2] * height / 2);
-        }
+        yuvPlanes = new ByteBuffer[3];
+        yuvPlanes[0] = ByteBuffer.allocateDirect(yuvStrides[0] * height);
+        yuvPlanes[1] = ByteBuffer.allocateDirect(yuvStrides[1] * height / 2);
+        yuvPlanes[2] = ByteBuffer.allocateDirect(yuvStrides[2] * height / 2);
 
         if (yuvData.length < width * height * 3 / 2) {
             throw new RuntimeException("Wrong arrays size: " + yuvData.length);

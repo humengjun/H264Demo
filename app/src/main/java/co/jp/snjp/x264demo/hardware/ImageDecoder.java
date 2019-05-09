@@ -217,6 +217,7 @@ public class ImageDecoder {
                 }
             }
         } else {
+            //根据缓存的帧数决定解码几帧，取最后一帧
             for (int i = 0; i < cacheFrameCount + 1; i++) {
                 if (mMediaCodec != null) {
                     int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);

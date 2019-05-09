@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">X264Demo</string>
+    <string name="app_name">H264Encoder_Decoder</string>
 
     <string-array name="compress_ratio">
         <item>10%</item>
