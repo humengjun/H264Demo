@@ -1,5 +1,7 @@
 package co.jp.snjp.x264demo;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -11,10 +13,10 @@ import android.widget.TextView;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-import co.jp.snjp.x264demo.display.GLES20Support;
-import co.jp.snjp.x264demo.display.GLFrameRenderer;
-import co.jp.snjp.x264demo.display.GLFrameSurface;
 import co.jp.snjp.x264demo.hardware.FileSelectionDialog;
+import co.jp.snjp.x264demo.opengl.GLES20Support;
+import co.jp.snjp.x264demo.opengl.GLFrameRenderer;
+import co.jp.snjp.x264demo.opengl.GLFrameSurface;
 import co.jp.snjp.x264demo.utils.FileUtils;
 import co.jp.snjp.x264demo.view.YUVPlayer;
 
@@ -74,7 +76,68 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 
     @Override
     public void onFileSelect(final File file) {
-        if (file.getName().endsWith(".yuv")) {
+
+        int height = 720;
+        int width = 1280;
+        try {
+            height = Integer.parseInt(edit_height.getText().toString());
+            width = Integer.parseInt(edit_width.getText().toString());
+        } catch (Exception ignored) {
+        }
+
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        int screenWidth = dm.widthPixels;
+        int screenHeight = dm.heightPixels;
+
+        //调整控件大小
+        if (screenWidth > width) {
+            surface.getLayoutParams().height = height;
+            surface.getLayoutParams().width = width;
+        } else {
+            surface.getLayoutParams().height = height * screenWidth / width;
+            surface.getLayoutParams().width = screenWidth;
+        }
+
+        if (file.getName().endsWith(".bmp")) {
+            startTime = System.currentTimeMillis();
+            byte[] bmpData = FileUtils.readFile4Bytes(file);
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inScaled = false;
+            //       options.inSampleSize = 1;   //width，hight设为原来的十分一
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bmpData, 0, bmpData.length, options);
+            ByteBuffer buffer = ByteBuffer.allocate(bitmap.getByteCount());
+            bitmap.copyPixelsToBuffer(buffer);
+            byte[] rgbData = buffer.array();
+
+            //设置图片大小
+            final int finalWidth = width;
+            final int finalHeight = height;
+            renderer.rgb2yuv(rgbData, width, height, new GLFrameRenderer.Rgb2YuvCallback() {
+                @Override
+                public void onResult(byte[] yuvData) {
+
+                    renderer.update(finalWidth, finalHeight);
+                    copyFrom(yuvData, finalWidth, finalHeight);
+                    byte[] y = new byte[yuvPlanes[0].remaining()];
+                    yuvPlanes[0].get(y, 0, y.length);
+                    byte[] u = new byte[yuvPlanes[1].remaining()];
+                    yuvPlanes[1].get(u, 0, u.length);
+                    byte[] v = new byte[yuvPlanes[2].remaining()];
+                    yuvPlanes[2].get(v, 0, v.length);
+                    renderer.update(y, u, v);
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textView.setText("show time:" + (System.currentTimeMillis() - startTime));
+                        }
+                    });
+
+                }
+            });
+
+        } else if (file.getName().endsWith(".yuv")) {
 //            new Thread() {
 //                @Override
 //                public void run() {
@@ -82,27 +145,6 @@ public class YuvPlayActivity extends AppCompatActivity implements FileSelectionD
 //                }
 //            }.start();
             startTime = System.currentTimeMillis();
-
-            int height = 720;
-            int width = 1280;
-            try {
-                height = Integer.parseInt(edit_height.getText().toString());
-                width = Integer.parseInt(edit_width.getText().toString());
-            } catch (Exception ignored) {
-            }
-
-            DisplayMetrics dm = getResources().getDisplayMetrics();
-            int screenWidth = dm.widthPixels;
-            int screenHeight = dm.heightPixels;
-
-            if (screenWidth > width) {
-                surface.getLayoutParams().height = height;
-                surface.getLayoutParams().width = width;
-            } else {
-                surface.getLayoutParams().height = height * screenWidth / width;
-                surface.getLayoutParams().width = screenWidth;
-            }
-
 
             renderer.update(width, height);
 

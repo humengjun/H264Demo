@@ -1,4 +1,4 @@
-package co.jp.snjp.x264demo.display;
+package co.jp.snjp.x264demo.opengl;
 
 public interface ISimplePlayer {
 

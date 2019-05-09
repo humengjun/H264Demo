@@ -20,7 +20,7 @@
         android:layout_centerHorizontal="true"
         android:text="show time:" />
 
-    <co.jp.snjp.x264demo.display.GLFrameSurface
+    <co.jp.snjp.x264demo.opengl.GLFrameSurface
         android:id="@+id/play"
         android:layout_width="320dp"
         android:layout_height="180dp"

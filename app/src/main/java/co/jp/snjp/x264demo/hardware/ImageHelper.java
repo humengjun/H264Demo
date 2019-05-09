@@ -24,9 +24,11 @@ public class ImageHelper {
 
     public static byte[] getDataFromImage(Image image, int colorFormat) {
         if (colorFormat != COLOR_FormatI420 && colorFormat != COLOR_FormatNV21) {
+            image.close();
             throw new IllegalArgumentException("only support COLOR_FormatI420 " + "and COLOR_FormatNV21");
         }
         if (!isImageFormatSupported(image)) {
+            image.close();
             throw new RuntimeException("can't convert Image to byte array, format " + image.getFormat());
         }
         Rect crop = image.getCropRect();
@@ -89,6 +91,7 @@ public class ImageHelper {
                 }
             }
         }
+        image.close();
         return data;
     }
 }
