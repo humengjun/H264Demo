@@ -238,7 +238,6 @@ public class ImageEncoder {
                 }
             }
         } else {
-            //根据缓存的帧数决定编码几帧，取最后一帧
             for (int i = 0; i < cacheFrameCount + 1; i++) {
                 if (mMediaCodec != null) {
                     int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
@@ -274,7 +273,7 @@ public class ImageEncoder {
                             if (bufferInfo.flags == 2) {
                                 configByte = new byte[bufferInfo.size];
                                 configByte = buffer;
-                            }  else {// if (bufferInfo.flags == 1)
+                            } else {// if (bufferInfo.flags == 1)
                                 h264Data = new byte[buffer.length + configByte.length];
                                 System.arraycopy(configByte, 0, h264Data, 0, configByte.length);
                                 System.arraycopy(buffer, 0, h264Data, configByte.length, buffer.length);

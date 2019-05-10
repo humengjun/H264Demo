@@ -150,7 +150,7 @@ public class ImageDecoder {
         if (h264Data == null)
             return null;
 
-        int[] w_h_data = new int[2];
+        int[] w_h_data = {width, height};
         H264SPSParser.obtainH264ImageSize(h264Data, w_h_data);
         int width = w_h_data[0];
         int height = w_h_data[1];
@@ -186,14 +186,13 @@ public class ImageDecoder {
 
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     while (outputBufferIndex >= 0) {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP&&
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP &&
                                 color_format != MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible) {
                             //COLOR_FormatYUV420Flexible颜色格式不支持此方法解码
                             Image image = mMediaCodec.getOutputImage(outputBufferIndex);
                             if (image != null) {
                                 yuvData = ImageHelper.getDataFromImage(image, ImageHelper.COLOR_FormatI420);
                                 isI420 = true;
-                                cacheFrameCount--;
                             }
                         } else {
                             ByteBuffer outputBuffer = null;
@@ -205,9 +204,10 @@ public class ImageDecoder {
                             if (outputBuffer != null && bufferInfo.size >= yuvSize) {
                                 yuvData = new byte[yuvSize];
                                 outputBuffer.get(yuvData, 0, yuvData.length);
-                                cacheFrameCount--;
                             }
                         }
+
+                        cacheFrameCount--;
                         mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                         outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     }
@@ -247,7 +247,6 @@ public class ImageDecoder {
                             if (image != null) {
                                 yuvData = ImageHelper.getDataFromImage(image, ImageHelper.COLOR_FormatI420);
                                 isI420 = true;
-                                cacheFrameCount--;
                             }
                         } else {
                             ByteBuffer outputBuffer = null;
@@ -259,10 +258,10 @@ public class ImageDecoder {
                             if (outputBuffer != null && bufferInfo.size >= yuvSize) {
                                 yuvData = new byte[yuvSize];
                                 outputBuffer.get(yuvData, 0, yuvData.length);
-                                cacheFrameCount--;
                             }
                         }
 
+                        cacheFrameCount--;
                         mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                         outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
                     }

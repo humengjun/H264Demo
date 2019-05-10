@@ -294,27 +294,31 @@ public class H264Decoder {
             int yuvSize = width * height * 3 / 2;
             byte[] yuvData = null;
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-            while (true) {
-                dataSources = mInputDataList.poll();
-                if (dataSources == null)
-                    break;
-
+            int count = mInputDataList.size();
+            ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
+            ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
+            while (count > 0) {
                 try {
-                    ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-                    ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
-                    int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
-                    int flag = MediaCodec.BUFFER_FLAG_KEY_FRAME;
-                    if (mInputDataList.size() == 0)
-                        flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
-                    if (inputBufferIndex >= 0) {
-                        ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
-                        inputBuffer.clear();
-                        inputBuffer.put(dataSources);
-                        mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), flag);
-                        generateIndex++;
+                    dataSources = mInputDataList.poll();
+                    if (dataSources != null) {
+                        int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
+                        int flag = 0;
+                        if (mInputDataList.size() == 0)
+                            flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
+                        if (inputBufferIndex >= 0) {
+                            ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
+                            inputBuffer.clear();
+                            inputBuffer.put(dataSources);
+                            mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), flag);
+                            generateIndex++;
+                        }
                     }
 
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                    if (outputBufferIndex == -3) {
+                        inputBuffers = mMediaCodec.getInputBuffers();
+                        outputBuffers = mMediaCodec.getOutputBuffers();
+                    }
                     while (outputBufferIndex >= 0) {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP &&
                                 color_format != MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible) {
@@ -324,6 +328,7 @@ public class H264Decoder {
                                 yuvData = ImageHelper.getDataFromImage(image, ImageHelper.COLOR_FormatI420);
                                 if (iResponse != null) {
                                     iResponse.onResponse(1, yuvData);
+                                    count--;
                                 }
                             }
                         } else {
@@ -336,6 +341,7 @@ public class H264Decoder {
                                         yuvData = YuvConvertTools.NV12toI420(yuvData);
                                     }
                                     iResponse.onResponse(1, yuvData);
+                                    count--;
                                 }
                             }
                             mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);

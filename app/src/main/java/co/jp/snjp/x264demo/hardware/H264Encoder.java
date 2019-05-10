@@ -181,15 +181,12 @@ public class H264Encoder {
                         if (bufferInfo.flags == 2) {
                             configByte = new byte[bufferInfo.size];
                             configByte = buffer;
-                        } else if (bufferInfo.flags == 1) {
+                        } else { //if (bufferInfo.flags == 1) {
                             byte[] keyframe = new byte[bufferInfo.size + configByte.length];
                             System.arraycopy(configByte, 0, keyframe, 0, configByte.length);
                             System.arraycopy(buffer, 0, keyframe, configByte.length, buffer.length);
                             if (iResponse != null)
                                 iResponse.onResponse(2, keyframe);
-                        } else {
-                            if (iResponse != null)
-                                iResponse.onResponse(2, buffer);
                         }
                     }
                 } catch (IllegalStateException ignored) {
@@ -319,34 +316,39 @@ public class H264Encoder {
     class EncoderRunnable implements Runnable {
         @Override
         public void run() {
-            while (true) {
+            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            int count = mInputDataList.size();
+            ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
+            ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
+            while (count > 0) {
                 dataSources = mInputDataList.poll();
-                if (dataSources == null)
-                    break;
-                //输入为yuv格式
-                if (isI420) {
-                    dataSources = Bmp2YuvTools.convertI420(dataSources, width, height);
-                } else {
-                    dataSources = Bmp2YuvTools.convertNV12(dataSources, width, height);
-                }
                 try {
-                    ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-                    ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
-                    int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
-                    int flag = MediaCodec.BUFFER_FLAG_KEY_FRAME;
-//                    if (mInputDataList.size() == 0)
-//                        flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
+                    if (dataSources != null) {
+                        //输入为yuv格式
+                        if (isI420) {
+                            dataSources = Bmp2YuvTools.convertI420(dataSources, width, height);
+                        } else {
+                            dataSources = Bmp2YuvTools.convertNV12(dataSources, width, height);
+                        }
+                        int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
+                        int flag = 0;
+//                        if (mInputDataList.size() == 0)
+//                            flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
 
-                    if (inputBufferIndex >= 0) {
-                        ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
-                        inputBuffer.clear();
-                        inputBuffer.put(dataSources);
-                        mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), flag);
-                        generateIndex++;
+                        if (inputBufferIndex >= 0) {
+                            ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
+                            inputBuffer.clear();
+                            inputBuffer.put(dataSources);
+                            mMediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSources.length, computePresentationTime(generateIndex), flag);
+                            generateIndex++;
+                        }
                     }
 
-                    MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                    if (outputBufferIndex == -3) {
+                        inputBuffers = mMediaCodec.getInputBuffers();
+                        outputBuffers = mMediaCodec.getOutputBuffers();
+                    }
 
                     while (outputBufferIndex >= 0) {
                         ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
@@ -356,15 +358,14 @@ public class H264Encoder {
                         if (bufferInfo.flags == 2) {
                             configByte = new byte[bufferInfo.size];
                             configByte = outData;
-                        } else if (bufferInfo.flags == 1) {
+                        } else { //if (bufferInfo.flags == 1) {
                             byte[] keyframe = new byte[bufferInfo.size + configByte.length];
                             System.arraycopy(configByte, 0, keyframe, 0, configByte.length);
                             System.arraycopy(outData, 0, keyframe, configByte.length, outData.length);
-                            if (iResponse != null)
+                            if (iResponse != null) {
                                 iResponse.onResponse(2, keyframe);
-                        } else {
-                            if (iResponse != null)
-                                iResponse.onResponse(2, outData);
+                                count--;
+                            }
                         }
 
                         mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);

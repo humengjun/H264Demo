@@ -23,7 +23,6 @@ import co.jp.snjp.x264demo.R;
 import co.jp.snjp.x264demo.YuvPlayActivity;
 import co.jp.snjp.x264demo.utils.FileUtils;
 import co.jp.snjp.x264demo.utils.PermissionUtils;
-import jp.co.tmath.tmch264dec.TMCH264Dec;
 
 public class MainActivity extends AppCompatActivity implements FileSelectionDialog.OnFileSelectListener {
 
@@ -57,8 +56,6 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
     H264Decoder decoder;
 
     H264Encoder encoder;
-
-    TMCH264Dec tmcdec;
 
     int tmc2hywayDecIndex, hyway2hywayDecIndex, hywayEncIndex;
 
@@ -197,8 +194,6 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
             }
         });
 
-//        tmcdec = new TMCH264Dec(this);
-//        tmcdec.Init("hq1a00t1");
     }
 
     private void writeBmp() {
@@ -383,8 +378,8 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                 path = HYWAY_H264_PATH;
                 break;
             case TMC_ENCODER_CODE:
-                state.setText("编码中...");
-                path = BMP_PATH;
+//                state.setText("编码中...");
+//                path = BMP_PATH;
                 FileUtils.deleteFile(HYWAY_H264_PATH);
                 FileUtils.deleteFile(HYWAY_HYWAY_YUV_PATH);
                 return;
@@ -432,41 +427,6 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
     }
 
     private void startTmcDecoder(File file) {
-        startTime = System.currentTimeMillis();
-        try {
-            InputStream inputStream = new FileInputStream(file);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            byte[] b = new byte[1024];
-            int len = 0;
-            while ((len = inputStream.read(b)) != -1) {
-                outputStream.write(b, 0, len);
-            }
-            byte[] h264Data = outputStream.toByteArray();
-
-            inputStream.close();
-            outputStream.close();
-
-            int retcode = tmcdec.SetStream(h264Data, 0, h264Data.length);
-            if (retcode == TMCH264Dec.TMCH264DEC_STATUS_OUT_IMAGE) {
-//                    outWidth = tmcdec.GetWidth();
-//                    outHeight = tmcdec.GetHeight();
-                byte[] yuv_data = tmcdec.GetImage();
-
-                File outFile = new File(TMC_TMC_YUV_PATH + file.getName().replace(".264", "") + ".yuv");
-                FileUtils.writeFile(outFile, yuv_data, false);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        state.setText("OK:" + (System.currentTimeMillis() - startTime));
-                    }
-                });
-            }
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void startTmcEncoder(final File file) {

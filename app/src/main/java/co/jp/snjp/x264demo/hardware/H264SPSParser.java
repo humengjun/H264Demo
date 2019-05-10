@@ -87,6 +87,8 @@ public class H264SPSParser {
             return;
         startBit = 0;
         byte[] sps = getSPS(h264Data);
+        if (sps == null || sps.length == 0)
+            return;
         int profile_idc = u(sps, 8, startBit);
         int constraint_set0_flag = u(sps, 1, startBit);
         int constraint_set1_flag = u(sps, 1, startBit);
