@@ -143,9 +143,10 @@ public class ImageDecoder {
      * 解码一张图片
      *
      * @param file
+     * @param isReset 是否重置解码器
      * @return
      */
-    public byte[] decoderFile(File file) {
+    public byte[] decoderFile(File file, boolean isReset) {
         byte[] h264Data = FileUtils.readFile4Bytes(file);
         if (h264Data == null)
             return null;
@@ -155,9 +156,10 @@ public class ImageDecoder {
         int width = w_h_data[0];
         int height = w_h_data[1];
 
-        if (this.width != width || this.height != height) {
+        if (this.width != width || this.height != height)
             resetDecoder(width, height);
-        }
+        else if (isReset)
+            resetDecoder(width, height);
 
         int yuvSize = width * height * 3 / 2;
         byte[] yuvData = null;

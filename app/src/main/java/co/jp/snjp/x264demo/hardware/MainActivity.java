@@ -88,6 +88,8 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
     ImageDecoder imageDecoder;
     ImageEncoder imageEncoder;
 
+    private boolean isReset;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -162,7 +164,14 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                 if (imageEncoder != null)
                     imageEncoder.release();
                 int compressRatio = Integer.parseInt(spinner.getSelectedItem().toString().replace("%", ""));//压缩百分比
-                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 640, 360, isNew);
+                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 1280, 720, isNew);
+
+                if(compressRatio == 40){
+                    //在码率为40%的时候重置编解码器，仅做测试使用
+                    isReset = true;
+                }else {
+                    isReset = false;
+                }
             }
 
             @Override
@@ -184,8 +193,8 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
                     imageDecoder.release();
                 if (imageEncoder != null)
                     imageEncoder.release();
-                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 640, 360, isNew);
-                imageDecoder = new ImageDecoder(MIME_FORMAT, 640, 360, isNew);
+                imageEncoder = new ImageEncoder(MIME_FORMAT, compressRatio, 1280, 720, isNew);
+                imageDecoder = new ImageDecoder(MIME_FORMAT, 1280, 720, isNew);
             }
 
             @Override
@@ -477,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
     private void startHywayDecoder(final File file) {
         startTime = System.currentTimeMillis();
 
-        byte[] yuvData = imageDecoder.decoderFile(file);
+        byte[] yuvData = imageDecoder.decoderFile(file,isReset);
         if (yuvData == null)
             return;
 
@@ -495,7 +504,7 @@ public class MainActivity extends AppCompatActivity implements FileSelectionDial
     private void startHywayEncoder(final File file) {
         startTime = System.currentTimeMillis();
 
-        byte[] h264Data = imageEncoder.encoderFile(file);
+        byte[] h264Data = imageEncoder.encoderFile(file,isReset);
         if (h264Data == null)
             return;
 

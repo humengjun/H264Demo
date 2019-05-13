@@ -150,9 +150,10 @@ public class ImageEncoder {
      * 编码一张图片
      *
      * @param file
+     * @param isReset 是否重置编码器
      * @return
      */
-    public byte[] encoderFile(File file) {
+    public byte[] encoderFile(File file, boolean isReset) {
         byte[] yuvData;
         byte[] fileData = FileUtils.readFile4Bytes(file);
         if (fileData == null)
@@ -165,14 +166,19 @@ public class ImageEncoder {
             //获取图片的宽高
             int height = options.outHeight;
             int width = options.outWidth;
-            if (this.width != width || this.height != height) {
+            if (this.width != width || this.height != height)
                 resetEncoder(width, height);
-            }
+            else if (isReset)
+                resetEncoder(width, height);
+
             if (isI420)
                 yuvData = Bmp2YuvTools.convertI420(fileData, width, height);
             else
                 yuvData = Bmp2YuvTools.convertNV12(fileData, width, height);
         } else if (file.getName().endsWith(".yuv")) {
+            if (isReset)
+                resetEncoder(width, height);
+
             if (!isI420)
                 yuvData = YuvConvertTools.I420toNV12(fileData);
             else

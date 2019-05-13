@@ -318,10 +318,10 @@ public class H264Encoder {
         public void run() {
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             int count = mInputDataList.size();
-            ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-            ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
             while (count > 0) {
                 dataSources = mInputDataList.poll();
+                ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
+                ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
                 try {
                     if (dataSources != null) {
                         //输入为yuv格式
@@ -331,7 +331,7 @@ public class H264Encoder {
                             dataSources = Bmp2YuvTools.convertNV12(dataSources, width, height);
                         }
                         int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
-                        int flag = 0;
+                        int flag = MediaCodec.BUFFER_FLAG_KEY_FRAME;
 //                        if (mInputDataList.size() == 0)
 //                            flag = MediaCodec.BUFFER_FLAG_END_OF_STREAM;
 
@@ -345,26 +345,23 @@ public class H264Encoder {
                     }
 
                     int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
-                    if (outputBufferIndex == -3) {
-                        inputBuffers = mMediaCodec.getInputBuffers();
-                        outputBuffers = mMediaCodec.getOutputBuffers();
-                    }
-
                     while (outputBufferIndex >= 0) {
                         ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
-                        byte[] outData = new byte[bufferInfo.size];
-                        outputBuffer.get(outData);
+                        if (outputBuffer != null && bufferInfo.size > 0) {
+                            byte[] outData = new byte[bufferInfo.size];
+                            outputBuffer.get(outData);
 
-                        if (bufferInfo.flags == 2) {
-                            configByte = new byte[bufferInfo.size];
-                            configByte = outData;
-                        } else { //if (bufferInfo.flags == 1) {
-                            byte[] keyframe = new byte[bufferInfo.size + configByte.length];
-                            System.arraycopy(configByte, 0, keyframe, 0, configByte.length);
-                            System.arraycopy(outData, 0, keyframe, configByte.length, outData.length);
-                            if (iResponse != null) {
-                                iResponse.onResponse(2, keyframe);
-                                count--;
+                            if (bufferInfo.flags == 2) {
+                                configByte = new byte[bufferInfo.size];
+                                configByte = outData;
+                            } else { //if (bufferInfo.flags == 1) {
+                                byte[] keyframe = new byte[bufferInfo.size + configByte.length];
+                                System.arraycopy(configByte, 0, keyframe, 0, configByte.length);
+                                System.arraycopy(outData, 0, keyframe, configByte.length, outData.length);
+                                if (iResponse != null) {
+                                    iResponse.onResponse(2, keyframe);
+                                    count--;
+                                }
                             }
                         }
 
